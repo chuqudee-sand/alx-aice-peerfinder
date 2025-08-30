@@ -26,8 +26,8 @@ app.config.update(
     MAIL_SERVER='smtp.gmail.com',
     MAIL_PORT=587,
     MAIL_USE_TLS=True,
-    MAIL_USERNAME="vaprogram@alxafrica.com",  # [REQUIRED]
-    MAIL_PASSWORD="xqnwwqzuderckwaj",         # [REQUIRED]
+    MAIL_USERNAME="aice@alxafrica.com",  # [REQUIRED]
+    MAIL_PASSWORD=EMAIL_APP_PASSWORD,         # [REQUIRED]
 )
 mail = Mail(app)
 
@@ -37,7 +37,7 @@ if not AWS_S3_BUCKET:
     raise Exception("AWS_S3_BUCKET environment variable not set")
 
 s3 = boto3.client('s3')
-CSV_OBJECT_KEY = 'va_peer-matcing_data.csv'
+CSV_OBJECT_KEY = 'aice_peer-matcing_data.csv'
 
 ADMIN_PASSWORD = "alx_admin_2025_peer_finder"
 
@@ -550,4 +550,5 @@ def disclaimer():
     return render_template('disclaimer.html')
 
 if __name__ == '__main__':
+
     app.run(debug=True)
