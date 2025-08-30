@@ -285,8 +285,7 @@
         <option value="Nigeria">Nigeria</option>
         <option value="Rwanda">Rwanda</option>
         <option value="South Africa">South Africa</option>
-        <option value="Other (African Country)">Other (African Country)</option>
-        <option value="Other (Non-African Country)">Other (Non-African Country)</option>
+        <option value="Other (African Country)">Other Countries</option>
       </select>
 
       <label for="language">Preferred Language:</label>
@@ -301,22 +300,20 @@
       <label for="cohort">Cohort:</label>
       <select id="cohort" name="cohort" required>
         <option value="">--Select--</option>
-        {% for i in range(12, 13) %}
+        {% for i in range(15, 16) %}
           <option value="Cohort {{ i }}">Cohort {{ i }}</option>
         {% endfor %}
       </select>
 
-      <label for="topic_module">I am currently in... (Week):</label>
+      <label for="topic_module">I am currently in... (Topic/Module):</label>
       <select id="topic_module" name="topic_module" required>
         <option value="">--Select--</option>
-        <option value="Week 1: Recap Quiz/Milestone">Week 1: Recap Quiz/Milestone</option>
-        <option value="Week 2: Recap Quiz/Milestone">Week 2: Recap Quiz/Milestone</option>
-        <option value="Week 3: Recap Quiz/Milestone">Week 3: Recap Quiz/Milestone</option>
-        <option value="Week 4: Recap Quiz/Milestone">Week 4: Recap Quiz/Milestone</option>
-        <option value="Week 5: Recap Quiz/Milestone">Week 5: Recap Quiz/Milestone</option>
-        <option value="Week 6: Recap Quiz/Milestone">Week 6: Recap Quiz/Milestone</option>
-        <option value="Week 7: Recap Quiz/Milestone">Week 7: Recap Quiz/Milestone</option>
-        <option value="Week 8: Recap Quiz/Milestone">Week 8: Recap Quiz/Milestone</option>
+        <option value="Module 1: Stepping into the world of AI">Module 1: Stepping into the world of AI</option>
+        <option value="Module 2: Getting smart about AI">Module 2: Getting smart about AI</option>
+        <option value="Module 3: Using AI in the right way">Module 3: Using AI in the right way</option>
+        <option value="Module 4: Becoming more creative at work">Module 4: Becoming more creative at work</option>
+        <option value="Module 5: Becoming a superhero at work">Module 5: Becoming a superhero at work</option>
+        <option value="Module 6: Empower your future with Entrepreneurial Skills">Module 6: Empower your future with Entrepreneurial Skills</option>
       </select>
 
       <!-- <label>Submitted Last Week's Assessment?</label>
@@ -409,4 +406,5 @@
     });
   </script>
 </body>
+
 </html> 
