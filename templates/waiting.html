@@ -213,10 +213,11 @@
                 </table>
             {% endif %}
         {% endif %}
-        <button class="find-btn" {% if match_attempted %}disabled{% endif %} onclick="tryMatch()">Find Matches Now</button>
+        <button class="find-btn" {% if match_attempted %}disabled{% endif %} onclick="tryMatch()">Click here👆 to find matches now</button>
         <br>
         <a href="{{ url_for('check_match') }}" class="check-status-link">Check Match Status</a>
         <a href="{{ url_for('landing') }}" class="back-link">&larr; Back to Home</a>
     </div>
 </body>
+
 </html>
