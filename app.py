@@ -187,14 +187,14 @@ def fallback_match_unmatched():
         (df['connection_type'] == 'find')
     ]
 
-    def is_older_than_4_days(ts):
+    def is_older_than_2_days(ts):
         try:
             dt = datetime.fromisoformat(ts)
-            return (now - dt) < timedelta(days=5)
+            return (now - dt) > timedelta(days=2)
         except Exception:
             return False
 
-    unmatched = unmatched[unmatched['timestamp'].apply(is_older_than_4_days)]
+    unmatched = unmatched[unmatched['timestamp'].apply(is_older_than_2_days)]
 
     for group_size in [2, 3, 5]:
         eligible = unmatched[unmatched['preferred_study_setup'] == str(group_size)]
@@ -553,6 +553,7 @@ def disclaimer():
 if __name__ == '__main__':
 
     app.run(debug=True)
+
 
 
 
