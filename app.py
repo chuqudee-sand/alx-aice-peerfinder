@@ -179,7 +179,7 @@ Peer Finder Team
 
 def fallback_match_unmatched():
     df = download_csv()
-    now = datetime.now(timezone.UTC)
+    now = datetime.utcnow()
     updated = False
 
     unmatched = df[
@@ -190,7 +190,7 @@ def fallback_match_unmatched():
     def is_older_than_4_days(ts):
         try:
             dt = datetime.fromisoformat(ts)
-            return (now - dt) > timedelta(days=4)
+            return (now - dt) < timedelta(days=5)
         except Exception:
             return False
 
@@ -208,18 +208,13 @@ def fallback_match_unmatched():
             df.loc[group.index, 'matched'] = True
             df.loc[group.index, 'group_id'] = group_id
             df.loc[group.index, 'matched_timestamp'] = now_iso
-            df.loc[group.index, 'match_attempted'] = True
             updated = True
-            # Send email notifications to matched group members
-            group_members = df[df['group_id'] == group_id].to_dict(orient='records')
-            for member in group_members:
-                if member['email'] != 'unpaired':
-                    send_match_email(member['email'], member['name'], group_members)
-            logger.debug(f"Fallback matched group: {group_id}, members: {group['id'].tolist()}")
             eligible = eligible.iloc[group_size:]
     if updated:
+        df['phone'] = df['phone'].astype(str).str.strip()
+        df['phone'] = df['phone'].apply(lambda x: '+' + x if x and not x.startswith('+') else x)
         upload_csv(df)
-        logger.debug("Fallback matching completed with emails sent")
+        
 
 # === Flask Routes ===
 
@@ -558,5 +553,6 @@ def disclaimer():
 if __name__ == '__main__':
 
     app.run(debug=True)
+
 
 
