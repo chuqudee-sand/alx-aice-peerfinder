@@ -14,7 +14,7 @@ app = Flask(__name__)
 
 # === ENVIRONMENT VARIABLES REQUIRED ===
 SECRET_KEY = "e8f3473b716cfe3760fd522e38a3bd5b9909510b0ef003f050e0a445fa3a6e83"
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')  # Fixed typo: 'WS_ACCESS_KEY_ID' to 'AWS_ACCESS_KEY_ID'
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION')
 EMAIL_APP_PASSWORD = os.environ.get('APP_PASSWORD')
@@ -107,7 +107,7 @@ def upload_csv(df):
     s3.put_object(Bucket=AWS_S3_BUCKET, Key=CSV_OBJECT_KEY, Body=csv_buffer.getvalue())
 
 def availability_match(a1, a2):
-    # Flexible matches any, else must match or one must be flexible
+    # Flexible matches any, else must match
     if a1 == 'Flexible' or a2 == 'Flexible':
         return True
     return a1 == a2
@@ -196,7 +196,7 @@ def fallback_match_unmatched():
 
     unmatched = unmatched[unmatched['timestamp'].apply(is_older_than_2_days)]
 
-    for group_size in [2, 3, 5]:
+    for group_size in [2, 3]:
         eligible = unmatched[unmatched['preferred_study_setup'] == str(group_size)]
         while len(eligible) >= group_size:
             group = eligible.iloc[:group_size]
@@ -214,7 +214,6 @@ def fallback_match_unmatched():
         df['phone'] = df['phone'].astype(str).str.strip()
         df['phone'] = df['phone'].apply(lambda x: '+' + x if x and not x.startswith('+') else x)
         upload_csv(df)
-        
 
 # === Flask Routes ===
 
@@ -262,8 +261,8 @@ def join_queue():
 
     if connection_type == 'find':
         preferred_study_setup = data.get('preferred_study_setup', '').strip()
-        if not preferred_study_setup or preferred_study_setup not in ['2', '3', '5']:
-            return render_template('form.html', connection_type=connection_type, error="Please select a valid preferred study setup.")
+        if not preferred_study_setup or preferred_study_setup not in ['2', '3']:
+            return render_template('form.html', connection_type=connection_type, error="Please select a valid preferred study setup (2 or 3).")
     elif connection_type in ['offer', 'need']:
         kind_of_support = data.get('kind_of_support', '').strip()
         if not kind_of_support:
@@ -347,9 +346,6 @@ def match_users():
     df.at[user.name, 'match_attempted'] = True
     updated = False
     if user['connection_type'] == 'find':
-        country = user['country']
-        cohort = user['cohort']
-        topic_module = user['topic_module']
         preferred_study_setup = user['preferred_study_setup']
         availability = user['availability']
         try:
@@ -358,7 +354,7 @@ def match_users():
             flash("Invalid preferred study setup.", "warning")
             upload_csv(df)
             return jsonify({'error': 'Invalid preferred study setup', 'redirect': url_for('waiting', user_id=user_id)}), 400
-        if group_size not in [2, 3, 5]:
+        if group_size not in [2, 3]:
             flash("Unsupported group size.", "warning")
             upload_csv(df)
             return jsonify({'error': 'Unsupported group size', 'redirect': url_for('waiting', user_id=user_id)}), 400
@@ -366,9 +362,6 @@ def match_users():
         eligible = df[
             (df['matched'] == False) &
             (df['connection_type'] == 'find') &
-            (df['country'] == country) &
-            (df['cohort'] == cohort) &
-            (df['topic_module'] == topic_module) &
             (df['preferred_study_setup'] == preferred_study_setup)
         ]
         eligible = eligible[eligible['availability'].apply(lambda x: availability_match(x, availability))]
@@ -551,9 +544,4 @@ def disclaimer():
     return render_template('disclaimer.html')
 
 if __name__ == '__main__':
-
     app.run(debug=True)
-
-
-
-
