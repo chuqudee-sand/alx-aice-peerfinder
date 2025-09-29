@@ -7,8 +7,19 @@ from flask import current_app, session
 import pandas as pd
 import boto3
 from botocore.exceptions import ClientError
-from flask_mail import Mail, Message
 import math
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+import base64
+from email.mime.text import MIMEText
+import json
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.ERROR)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -17,29 +28,64 @@ SECRET_KEY = "e8f3473b716cfe3760fd522e38a3bd5b9909510b0ef003f050e0a445fa3a6e83"
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_DEFAULT_REGION = os.environ.get('AWS_DEFAULT_REGION')
-EMAIL_APP_PASSWORD = os.environ.get('APP_PASSWORD')
 
 app.secret_key = os.environ.get('SECRET_KEY', 'default_secret_key')  # [REQUIRED]
 
-# Flask-Mail configuration
-app.config.update(
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=587,
-    MAIL_USE_TLS=True,
-    MAIL_USERNAME="aice@alxafrica.com",  # [REQUIRED]
-    MAIL_PASSWORD=EMAIL_APP_PASSWORD,         # [REQUIRED]
-)
-mail = Mail(app)
-
 # AWS S3 configuration
-AWS_S3_BUCKET = "alx-peer-finder-storage-bucket"
+AWS_S3_BUCKET = "alx-peerfinder-storage-bucket"
 if not AWS_S3_BUCKET:
     raise Exception("AWS_S3_BUCKET environment variable not set")
 
 s3 = boto3.client('s3')
-CSV_OBJECT_KEY = 'aice_peer-matcing_data.csv'
+CSV_OBJECT_KEY = 'ai_peer-matcing_data.csv'
 
 ADMIN_PASSWORD = "alx_admin_2025_peer_finder"
+
+# Gmail API configuration
+SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+TOKEN_FILE = 'token.json'  # Temporary file for token storage during runtime
+
+def get_gmail_service():
+    creds = None
+    # Check for GOOGLE_TOKEN environment variable
+    token_data = os.environ.get('GOOGLE_TOKEN')
+    if token_data and not os.path.exists(TOKEN_FILE):
+        try:
+            with open(TOKEN_FILE, 'w') as token:
+                token.write(token_data)
+        except Exception as e:
+            logger.error(f"Failed to write token.json from GOOGLE_TOKEN: {str(e)}")
+    # Load credentials from token.json if it exists
+    if os.path.exists(TOKEN_FILE):
+        try:
+            creds = Credentials.from_authorized_user_file(TOKEN_FILE, SCOPES)
+        except Exception as e:
+            logger.error(f"Failed to load token.json: {str(e)}")
+    # If no valid credentials, authenticate
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())
+                # Update token.json with new access token
+                with open(TOKEN_FILE, 'w') as token:
+                    token.write(creds.to_json())
+            except Exception as e:
+                logger.error(f"Failed to refresh token: {str(e)}")
+                creds = None
+        if not creds:
+            try:
+                client_secrets = json.loads(os.environ.get('GOOGLE_CLIENT_SECRETS'))
+                flow = InstalledAppFlow.from_client_config(client_secrets, SCOPES)
+                flow.redirect_uri = 'https://alx-aice-peerfinder.onrender.com/oauth2callback'
+                creds = flow.run_local_server(port=5000, open_browser=True)
+                # Save credentials for reuse
+                with open(TOKEN_FILE, 'w') as token:
+                    token.write(creds.to_json())
+                logger.info("Generated new token.json via OAuth flow")
+            except Exception as e:
+                logger.error(f"Failed to authenticate with Gmail API: {str(e)}")
+                raise
+    return build('gmail', 'v1', credentials=creds)
 
 # === Helper Functions ===
 
@@ -145,13 +191,19 @@ Thank you for helping create a respectful and encouraging learning community.
 Best regards,
 Peer Finder Team
 """
-    msg = Message(
-        subject="You've been matched!",
-        sender=app.config['MAIL_USERNAME'],
-        recipients=[user_email]
-    )
-    msg.body = body
-    mail.send(msg)
+    message = MIMEText(body)
+    message['to'] = user_email
+    message['from'] = 'aice@alxafrica.com'
+    message['subject'] = "You've been matched!"
+    message['reply-to'] = 'aice@alxafrica.com'
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    try:
+        service = get_gmail_service()
+        service.users().messages().send(userId='me', body={'raw': raw}).execute()
+        logger.info(f"Sent match email to {user_email}")
+    except Exception as e:
+        logger.error(f"Failed to send match email to {user_email}: {str(e)}")
+        raise
 
 def send_waiting_email(user_email, user_name, user_id):
     confirm_link = url_for('check_match', _external=True)
@@ -169,13 +221,19 @@ Check your status here: {confirm_link}
 Best regards,
 Peer Finder Team
 """
-    msg = Message(
-        subject="PeerFinder - Waiting to Be Matched",
-        sender=current_app.config['MAIL_USERNAME'],
-        recipients=[user_email]
-    )
-    msg.body = body
-    mail.send(msg)
+    message = MIMEText(body)
+    message['to'] = user_email
+    message['from'] = 'aice@alxafrica.com'
+    message['subject'] = 'PeerFinder - Waiting to Be Matched'
+    message['reply-to'] = 'aice@alxafrica.com'
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+    try:
+        service = get_gmail_service()
+        service.users().messages().send(userId='me', body={'raw': raw}).execute()
+        logger.info(f"Sent waiting email to {user_email}")
+    except Exception as e:
+        logger.error(f"Failed to send waiting email to {user_email}: {str(e)}")
+        raise
 
 def fallback_match_unmatched():
     df = download_csv()
